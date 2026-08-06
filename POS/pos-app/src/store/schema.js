@@ -70,6 +70,7 @@ const SHEETS = {
       // produce two sales for one meal. Persisting the key rather than holding
       // it in memory means the guarantee survives a server restart too.
       { key: 'clientRef', header: 'Client Ref', type: 'text', width: 38 },
+      { key: 'fulfillmentStatus', header: 'Fulfillment', type: 'text', width: 14 },
       { key: 'createdAt', header: 'Created At', type: 'datetime', width: 20 },
       { key: 'settledAt', header: 'Settled At', type: 'datetime', width: 20 },
       { key: 'voidedAt', header: 'Voided At', type: 'datetime', width: 20 },
@@ -87,7 +88,7 @@ const SHEETS = {
       { key: 'name', header: 'Item', type: 'text', width: 30 },
       { key: 'category', header: 'Category', type: 'text', width: 18 },
       { key: 'unitPriceMinor', header: 'Unit Price', type: 'money', width: 12 },
-      { key: 'quantity', header: 'Qty', type: 'int', width: 8 },
+      { key: 'quantity', header: 'Qty', type: 'float', width: 8 },
       { key: 'lineTotalMinor', header: 'Line Total', type: 'money', width: 12 },
     ],
   },

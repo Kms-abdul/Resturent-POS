@@ -70,7 +70,7 @@ function modal({ title, message, confirmLabel = 'Confirm', danger = false, input
         <div class="modal" role="dialog" aria-modal="true">
           <h3>${escapeHtml(title)}</h3>
           <p>${escapeHtml(message)}</p>
-          ${input ? `<div class="form-group"><input class="form-input" id="modalInput" placeholder="${escapeHtml(input.placeholder || '')}" maxlength="120"></div>` : ''}
+          ${input ? `<div class="form-group"><input class="form-input" id="modalInput" inputmode="${escapeHtml(input.inputmode || 'text')}" placeholder="${escapeHtml(input.placeholder || '')}" maxlength="120"></div>` : ''}
           <div class="modal-actions">
             <button class="btn btn-secondary" id="modalCancel" type="button">Cancel</button>
             <button class="btn ${danger ? 'btn-danger' : 'btn-primary'}" id="modalOk" type="button">${escapeHtml(confirmLabel)}</button>
@@ -405,7 +405,7 @@ $('logoutBtn').addEventListener('click', async () => {
 // ---------------------------------------------------------------------------
 
 function switchTab(tab) {
-  ['order', 'menu', 'kot', 'reports', 'staff'].forEach((t) => {
+  ['order', 'menu', 'kot', 'reports', 'staff', 'kitchen'].forEach((t) => {
     const el = $(`${t}Tab`);
     if (el) el.classList.toggle('hidden', t !== tab);
   });
@@ -417,6 +417,7 @@ function switchTab(tab) {
   if (tab === 'reports') loadReports();
   if (tab === 'menu') renderMenuList();
   if (tab === 'staff') loadStaff();
+  if (tab === 'kitchen') loadKitchen();
 }
 
 document.querySelectorAll('.nav-tab').forEach((btn) => {
@@ -734,7 +735,7 @@ function renderCart() {
         </div>
         <div class="cart-item-qty">
           <button class="qty-btn" data-qty="${line.menuItemId}" data-to="${line.quantity - 1}" type="button">−</button>
-          <span style="flex:1;text-align:center;font-size:0.875rem">${line.quantity}</span>
+          <span class="qty-display" style="flex:1;text-align:center;font-size:0.875rem;cursor:pointer;text-decoration:underline;" data-edit-qty="${line.menuItemId}" title="Click to enter custom quantity (e.g., 0.5)">${line.quantity}</span>
           <button class="qty-btn" data-qty="${line.menuItemId}" data-to="${line.quantity + 1}" type="button">+</button>
         </div>
       </div>`
@@ -746,11 +747,27 @@ function renderCart() {
   saveCart();
 }
 
-$('cartItems').addEventListener('click', (e) => {
+$('cartItems').addEventListener('click', async (e) => {
   const del = e.target.closest('[data-del]');
   if (del) return setQty(Number(del.dataset.del), 0);
-  const qty = e.target.closest('[data-qty]');
-  if (qty) return setQty(Number(qty.dataset.qty), Number(qty.dataset.to));
+  const qtyBtn = e.target.closest('[data-qty]');
+  if (qtyBtn) return setQty(Number(qtyBtn.dataset.qty), Number(qtyBtn.dataset.to));
+  const editQty = e.target.closest('[data-edit-qty]');
+  if (editQty) {
+    const id = Number(editQty.dataset.editQty);
+    const line = state.cart.find((c) => c.menuItemId === id);
+    if (!line) return;
+    const val = await modal({
+      title: 'Enter Quantity',
+      message: 'Enter custom quantity (e.g. 0.5 for half plate, 2.5, etc.)',
+      confirmLabel: 'Set',
+      input: { placeholder: String(line.quantity), inputmode: 'decimal' },
+    });
+    if (val) {
+      const num = Number.parseFloat(val);
+      if (!Number.isNaN(num) && num > 0) setQty(id, num);
+    }
+  }
 });
 
 $('orderNumber').addEventListener('input', (e) => {
@@ -1147,6 +1164,74 @@ $('pinForm').addEventListener('submit', async (e) => {
 // ---------------------------------------------------------------------------
 // Boot
 // ---------------------------------------------------------------------------
+
+async function loadKitchen() {
+  try {
+    const date = new Date().toISOString().slice(0, 10);
+    const { orders } = await api(`/orders?date=${encodeURIComponent(date)}`);
+    const pendingOrders = orders.filter(o => o.status !== 'voided' && o.fulfillmentStatus === 'pending');
+    
+    // Chef View: Aggregate items across all pending orders
+    const aggregatedItems = {};
+    pendingOrders.forEach(o => {
+      o.items.forEach(i => {
+        if (!aggregatedItems[i.name]) aggregatedItems[i.name] = 0;
+        aggregatedItems[i.name] += i.quantity;
+      });
+    });
+    
+    const chefHtml = Object.entries(aggregatedItems).map(([name, qty]) => `
+      <div style="display:flex; justify-content:space-between; padding: 0.75rem; border-bottom: 1px solid #475569; align-items:center;">
+        <span style="font-weight:600; font-size:1.1rem;">${escapeHtml(name)}</span>
+        <span style="font-weight:700; color:#fbbf24; font-size:1.4rem;">${qty}</span>
+      </div>
+    `).join('');
+    
+    $('chefViewContent').innerHTML = chefHtml || '<div class="empty-state">No items to cook right now.</div>';
+    
+    // Packer View: Individual orders
+    const packerHtml = pendingOrders.map(o => `
+      <div style="margin-bottom: 1rem; border: 1px solid #475569; border-radius: 0.5rem; padding: 1rem; background:#1e293b;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:1rem; border-bottom: 1px solid #334155; padding-bottom:0.5rem;">
+          <strong style="color:#fbbf24; font-size:1.2rem;">ORDER #${escapeHtml(o.orderNumber)}</strong>
+          <span style="font-size:0.875rem; color:#94a3b8;">${new Date(o.createdAt).toLocaleTimeString()}</span>
+        </div>
+        <div style="margin-bottom:1rem;">
+          ${o.items.map(i => `
+            <div style="display:flex; justify-content:space-between; padding: 0.25rem 0; font-size: 1.1rem;">
+              <span>• ${escapeHtml(i.name)}</span>
+              <span style="font-weight:bold;">${i.quantity}</span>
+            </div>
+          `).join('')}
+        </div>
+        <button class="btn btn-success" style="width:100%" data-fulfill-order="${escapeHtml(o.id)}" type="button">✔️ Mark Packed</button>
+      </div>
+    `).join('');
+    
+    $('packerViewContent').innerHTML = packerHtml || '<div class="empty-state">No pending orders.</div>';
+    
+  } catch (err) {
+    toast('error', 'Could not load kitchen data', err.message);
+  }
+}
+
+if ($('refreshKitchenBtn')) {
+  $('refreshKitchenBtn').addEventListener('click', loadKitchen);
+}
+if ($('packerViewContent')) {
+  $('packerViewContent').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-fulfill-order]');
+    if (!btn) return;
+    const orderId = btn.dataset.fulfillOrder;
+    try {
+      await api(`/orders/${encodeURIComponent(orderId)}/fulfill`, { method: 'POST' });
+      toast('success', `Order marked as packed.`);
+      loadKitchen();
+    } catch (err) {
+      toast('error', 'Could not update order', err.message);
+    }
+  });
+}
 
 (async function boot() {
   loadCart();

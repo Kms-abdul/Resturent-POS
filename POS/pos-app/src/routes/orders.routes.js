@@ -60,4 +60,13 @@ router.post('/:id/void', requirePerm('orders:void'), async (req, res, next) => {
   }
 });
 
+router.post('/:id/fulfill', requirePerm('orders:create'), async (req, res, next) => {
+  try {
+    res.json({ order: await orderService.markFulfilled(req.params.id, req.user) });
+  } catch (err) {
+    next(err);
+  }
+});
+
 module.exports = router;
+

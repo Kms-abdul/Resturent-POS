@@ -253,6 +253,13 @@ class ExcelStore {
         }
         break;
       }
+      case 'order.fulfill': {
+        const order = this.state.orders.get(String(payload.id));
+        if (order) {
+          order.fulfillmentStatus = payload.fulfillmentStatus;
+        }
+        break;
+      }
       case 'user.upsert': {
         this.state.users.set(String(payload.id), { ...payload });
         break;
@@ -591,6 +598,10 @@ function parseCell(raw, type) {
       const n = Number.parseInt(String(v).replace(/[^0-9\-]/g, ''), 10);
       return Number.isFinite(n) ? n : null;
     }
+    case 'float': {
+      const n = Number.parseFloat(String(v).replace(/[^0-9\.\-]/g, ''));
+      return Number.isFinite(n) ? n : null;
+    }
     case 'money': {
       // Stored in the sheet as rupees for human readability; held in memory as
       // integer paise so arithmetic is exact.
@@ -628,6 +639,7 @@ function serializeCell(value, type) {
     case 'bool':
       return Boolean(value);
     case 'int':
+    case 'float':
       return Number(value);
     case 'text':
     default:

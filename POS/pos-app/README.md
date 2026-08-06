@@ -294,5 +294,6 @@ pos-app/
 If you're reading the code for the first time, start with
 `src/store/excelStore.js`. The header comment explains why the whole thing is
 shaped the way it is.
-#   F o o d - P O S  
+#   F o o d - P O S 
+ 
  

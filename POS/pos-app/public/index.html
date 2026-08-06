@@ -1014,6 +1014,7 @@
             <button class="nav-tab active" data-tab="order" type="button">📋 Order</button>
             <button class="nav-tab" data-tab="menu" type="button">🍴 Menu</button>
             <button class="nav-tab" data-tab="kot" type="button">🖨️ KOT</button>
+            <button class="nav-tab" data-tab="kitchen" type="button">👨‍🍳 Kitchen KDS</button>
             <button class="nav-tab" data-tab="reports" type="button">📊 Reports</button>
             <button class="nav-tab" data-tab="staff" data-requires="users:manage" type="button">👥 Staff</button>
         </nav>
@@ -1138,6 +1139,28 @@
                         style="margin-top: 1.5rem; display:flex; gap:0.5rem; justify-content:center;">
                         <button class="btn btn-primary" id="printKotBtn" type="button">🖨️ Print All</button>
                         <button class="btn btn-secondary" id="clearKotBtn" type="button">Clear History</button>
+                    </div>
+                </div>
+
+                <!-- KITCHEN KDS -->
+                <div id="kitchenTab" class="hidden">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h2>👨‍🍳 Kitchen Display System</h2>
+                        <button class="btn btn-secondary" id="refreshKitchenBtn" type="button">🔄 Refresh</button>
+                    </div>
+                    <div class="grid-2col">
+                        <div>
+                            <div class="card">
+                                <div class="card-header" style="background:#b91c1c;">🔥 Chef View: To Cook</div>
+                                <div id="chefViewContent" style="padding: 1rem;"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="card">
+                                <div class="card-header" style="background:#2563eb;">📦 Packer View: To Pack</div>
+                                <div id="packerViewContent" style="padding: 1rem;"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

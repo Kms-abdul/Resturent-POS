@@ -21,7 +21,7 @@ const createOrderInput = z.object({
     .array(
       z.object({
         menuItemId: z.coerce.number().int().positive(),
-        quantity: z.coerce.number().int().min(1).max(999),
+        quantity: z.coerce.number().min(0.1).max(999),
       })
     )
     .min(1, 'Add at least one item to the order')
@@ -132,6 +132,7 @@ function toApi(order, explicitLines) {
     settledAt: order.settledAt,
     voidedAt: order.voidedAt,
     voidReason: order.voidReason,
+    fulfillmentStatus: order.fulfillmentStatus || 'pending',
     items: lines,
   };
 }
@@ -216,6 +217,7 @@ async function create(input, user) {
       createdBy: user.name,
       terminal: data.terminal || 'unknown',
       clientRef: data.clientRef,
+      fulfillmentStatus: 'pending',
       createdAt: now.toISOString(),
       settledAt: now.toISOString(),
       voidedAt: null,
@@ -269,6 +271,24 @@ async function voidOrder(id, reason, user) {
   });
 }
 
+async function markFulfilled(id, user) {
+  return store.mutate((s) => {
+    const order = s.get('orders', id);
+    if (!order) throw notFound('That order does not exist.');
+    if (order.status === ORDER_STATUS.VOIDED) throw badRequest('Cannot fulfill a voided order.');
+
+    return {
+      events: [
+        {
+          type: 'order.fulfill',
+          payload: { id: order.id, fulfillmentStatus: 'completed' },
+        },
+      ],
+      result: { ...toApi(order), fulfillmentStatus: 'completed' },
+    };
+  });
+}
+
 function get(id) {
   const order = store.get('orders', id);
   if (!order) throw notFound('That order does not exist.');
@@ -287,4 +307,4 @@ function listForDay(dateStr) {
     .map((o) => toApi(o));
 }
 
-module.exports = { create, voidOrder, get, listForDay, toApi, reserveOrderNumber };
+module.exports = { create, voidOrder, get, listForDay, toApi, reserveOrderNumber, markFulfilled };
