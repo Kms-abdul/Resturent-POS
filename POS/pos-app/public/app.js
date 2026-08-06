@@ -162,7 +162,7 @@ const state = {
   reservingNumber: false,
   paymentMode: 'cash',
   clientRef: null,
-  currentKOT: null,
+  kotHistory: [],
   orders: [],
   submitting: false,
 };
@@ -794,25 +794,54 @@ $('clearCartBtn').addEventListener('click', async () => {
 // KOT
 // ---------------------------------------------------------------------------
 
+function printKOT(kotId) {
+  switchTab('kot');
+  document.querySelectorAll('.kot-preview').forEach((el) => {
+    if (el.dataset.id !== String(kotId)) {
+      el.classList.add('hidden-print');
+    }
+  });
+  window.print();
+  document.querySelectorAll('.kot-preview').forEach((el) => {
+    el.classList.remove('hidden-print');
+  });
+}
+
 $('kotBtn').addEventListener('click', () => {
   // Whatever is in the field is what goes on the ticket -- the auto number
   // normally, the cashier's override if they changed it. The button is disabled
   // while the field is empty, so there is no unnumbered-ticket path here.
-  state.currentKOT = {
+  const newKOT = {
+    id: `KOT-${Date.now()}`,
     orderNumber: ($('orderNumber').value || '').trim(),
     items: state.cart.map((l) => ({ name: l.name, quantity: l.quantity })),
     timestamp: new Date(),
     cashier: state.user.name,
   };
+  state.kotHistory.unshift(newKOT);
+
   renderKOT();
-  switchTab('kot');
+  
+  // Directly print the newly generated KOT
+  printKOT(newKOT.id);
+});
+
+$('kotContent').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-print-kot]');
+  if (btn) printKOT(btn.dataset.printKot);
 });
 
 function renderKOT() {
-  const k = state.currentKOT;
-  if (!k) return;
-  $('kotContent').innerHTML = `
-    <div class="kot-preview">
+  if (state.kotHistory.length === 0) {
+    $('kotContent').innerHTML = '<div class="empty-state">👁️ No KOT history. Generate one from the Order tab.</div>';
+    $('kotButtons').classList.add('hidden');
+    return;
+  }
+
+  $('kotContent').innerHTML = state.kotHistory
+    .map(
+      (k) => `
+    <div class="kot-preview" data-id="${escapeHtml(k.id)}">
       <div class="kot-header">
         <div class="kot-title">KITCHEN ORDER TICKET</div>
         <div class="kot-divider">─────────────────────────</div>
@@ -837,15 +866,20 @@ function renderKOT() {
         <div><strong>PLEASE PREPARE ORDER</strong></div>
         <div>═════════════════════════</div>
       </div>
-    </div>`;
+      <div class="kot-actions no-print" style="margin-top: 1rem;">
+        <button class="btn btn-secondary" style="margin: 0 auto;" data-print-kot="${escapeHtml(k.id)}" type="button">🖨️ Print Again</button>
+      </div>
+    </div>`
+    )
+    .join('');
+
   $('kotButtons').classList.remove('hidden');
 }
 
 $('printKotBtn').addEventListener('click', () => window.print());
 $('clearKotBtn').addEventListener('click', () => {
-  state.currentKOT = null;
-  $('kotContent').innerHTML = '<div class="empty-state">👁️ No KOT to display. Generate one from the Order tab.</div>';
-  $('kotButtons').classList.add('hidden');
+  state.kotHistory = [];
+  renderKOT();
 });
 
 // ---------------------------------------------------------------------------
