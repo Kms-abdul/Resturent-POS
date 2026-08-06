@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant POS System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            color: #ffffff;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .pos-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .pos-header {
+            background: linear-gradient(90deg, #1a1a1a 0%, #2d2d2d 100%);
+            padding: 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            position: sticky;
+            top: 0;
+            z-index: 40;
+            border-bottom: 3px solid #ffd700;
+        }
+
+        .header-content {
+            max-width: 1280px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .header-title h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #ffd700;
+        }
+
+        .header-title p {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-chip {
+            font-size: 0.8125rem;
+            text-align: right;
+            line-height: 1.3;
+        }
+
+        .user-chip strong {
+            color: #ffd700;
+        }
+
+        .user-chip span {
+            color: #94a3b8;
+            text-transform: capitalize;
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        .nav-tabs {
+            background: #1e293b;
+            border-bottom: 1px solid #334155;
+            display: flex;
+            gap: 0;
+            padding: 0;
+            max-width: 1280px;
+            margin: 0 auto;
+            width: 100%;
+            flex-wrap: wrap;
+        }
+
+        .nav-tab {
+            flex: 1;
+            min-width: 120px;
+            padding: 0.75rem 1rem;
+            border: none;
+            background: none;
+            color: #cbd5e1;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            font-size: 0.875rem;
+        }
+
+        .nav-tab.active {
+            background: #ffd700;
+            color: #1a1a1a;
+            border-bottom-color: #ffd700;
+        }
+
+        .nav-tab:hover:not(.active) {
+            background: #334155;
+            color: white;
+        }
+
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem 1rem;
+        }
+
+        .content-wrapper {
+            max-width: 1280px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .grid-2col {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .grid-4col {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .grid-2-2col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .card {
+            background: #334155;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            border: 1px solid #475569;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .card-header {
+            font-size: 1.25rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 1rem;
+        }
+
+        .menu-item {
+            background: linear-gradient(135deg, #475569 0%, #334155 100%);
+            border: 1px solid #64748b;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .menu-item:hover {
+            box-shadow: 0 0 12px rgba(255, 215, 0, 0.5);
+            border-color: #ffd700;
+            transform: translateY(-2px);
+        }
+
+        .menu-item-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+            font-size: 0.95rem;
+        }
+
+        .menu-item-category {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            margin-bottom: 0.75rem;
+        }
+
+        .menu-item-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: auto;
+        }
+
+        .menu-item-price {
+            color: #ffd700;
+            font-weight: 700;
+            font-size: 1.125rem;
+        }
+
+        .menu-item-btn {
+            background: #ffd700;
+            color: #1a1a1a;
+            border: none;
+            border-radius: 0.375rem;
+            padding: 0.5rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.875rem;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        .menu-item-btn:hover {
+            background: #ffed4e;
+        }
+
+        /* Category tiles. Visually distinct from item tiles so a cashier never
+           has to read the text to know which level they're on. */
+        .category-item {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border: 1px solid #ffd700;
+            border-radius: 0.5rem;
+            padding: 1.25rem 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            min-height: 104px;
+        }
+
+        .category-item:hover {
+            background: linear-gradient(135deg, #ffd700 0%, #f0c400 100%);
+            color: #1a1a1a;
+            transform: translateY(-2px);
+        }
+
+        .category-name {
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .category-count {
+            font-size: 0.75rem;
+            opacity: 0.75;
+        }
+
+        .crumb-back {
+            background: #475569;
+            color: #fff;
+            border: none;
+            border-radius: 0.375rem;
+            width: 34px;
+            height: 34px;
+            font-size: 1.125rem;
+            cursor: pointer;
+            margin-right: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .crumb-back:hover {
+            background: #64748b;
+        }
+
+        /* The order number is what the cashier reads back to the customer and
+           what the kitchen matches against, so it gets larger, bolder type than
+           a normal field -- it has to be checkable at a glance across a counter
+           without leaning in. */
+        .order-number-input {
+            font-size: 1.375rem !important;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            color: #ffd700 !important;
+            border-color: #ffd700 !important;
+            text-align: center;
+            padding: 0.6rem 0.75rem !important;
+        }
+
+        .order-number-input::placeholder {
+            color: #7c7248;
+            font-weight: 600;
+            letter-spacing: normal;
+            font-size: 1rem;
+        }
+
+        .order-number-row {
+            display: flex;
+            gap: 0.5rem;
+            align-items: stretch;
+        }
+
+        .order-number-row .form-input {
+            flex: 1;
+        }
+
+        .onb-reset {
+            flex: 0 0 auto;
+            width: 46px;
+            font-size: 1.125rem;
+            padding: 0;
+        }
+
+        /* Badge tells the cashier at a glance whether this number came from the
+           system or from them. Without it, an accidental keystroke in the field
+           is invisible and silently breaks the daily sequence. */
+        .onb-badge {
+            display: inline-block;
+            margin-left: 0.4rem;
+            padding: 0.1rem 0.4rem;
+            border-radius: 0.25rem;
+            font-size: 0.625rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            background: #334155;
+            color: #94a3b8;
+            border: 1px solid #475569;
+            vertical-align: middle;
+        }
+
+        .onb-badge.manual {
+            background: #78350f;
+            color: #fde68a;
+            border-color: #b45309;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            color: #cbd5e1;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-input,
+        .form-select {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            background: #1e293b;
+            border: 1px solid #64748b;
+            border-radius: 0.375rem;
+            color: white;
+            font-size: 0.875rem;
+            transition: border 0.2s;
+        }
+
+        .form-input:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: #ffd700;
+            box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
+        }
+
+        .field-error {
+            color: #fca5a5;
+            font-size: 0.75rem;
+            margin-top: 0.25rem;
+            min-height: 1rem;
+        }
+
+        .cart-items-list {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+        }
+
+        .cart-item {
+            background: #1e293b;
+            border: 1px solid #475569;
+            border-radius: 0.375rem;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .cart-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 0.5rem;
+        }
+
+        .cart-item-name {
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .cart-item-delete {
+            background: none;
+            border: none;
+            color: #f87171;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0;
+        }
+
+        .cart-item-qty {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .qty-btn {
+            background: #475569;
+            border: none;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: background 0.2s;
+        }
+
+        .qty-btn:hover {
+            background: #64748b;
+        }
+
+        .billing-section {
+            background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+            border-top: 3px solid #ffd700;
+            padding: 1rem;
+            margin-top: 1rem;
+            border-radius: 0.375rem;
+        }
+
+        .billing-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            font-size: 0.875rem;
+        }
+
+        .billing-total {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 700;
+            font-size: 1.125rem;
+            border-top: 1px solid #64748b;
+            padding-top: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .billing-total .amount {
+            color: #ffd700;
+        }
+
+        .payment-modes {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+        }
+
+        .pay-btn {
+            padding: 0.625rem 0.5rem;
+            border: 1px solid #64748b;
+            background: #1e293b;
+            color: #cbd5e1;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8125rem;
+            transition: all 0.2s;
+        }
+
+        .pay-btn.selected {
+            background: #ffd700;
+            color: #1a1a1a;
+            border-color: #ffd700;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-direction: column;
+        }
+
+        .btn {
+            padding: 0.625rem 1rem;
+            border: none;
+            border-radius: 0.375rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: #ffd700;
+            color: #1a1a1a;
+            font-weight: 700;
+        }
+
+        .btn-primary:hover {
+            background: #ffed4e;
+        }
+
+        .btn-success {
+            background: #16a34a;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #15803d;
+        }
+
+        .btn-secondary {
+            background: #475569;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #64748b;
+        }
+
+        .btn-danger {
+            background: #b91c1c;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+
+        .stat-card.green {
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+        }
+
+        .stat-card.amber {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        }
+
+        .stat-card.purple {
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+        }
+
+        .stat-icon {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        .kot-preview {
+            background: white;
+            color: black;
+            padding: 2rem;
+            border: 4px solid black;
+            font-family: monospace;
+            max-width: 400px;
+            margin: 2rem auto;
+            border-radius: 0.25rem;
+        }
+
+        .kot-header {
+            text-align: center;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid black;
+            padding-bottom: 0.5rem;
+        }
+
+        .kot-title {
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .kot-divider {
+            text-align: center;
+            font-size: 0.875rem;
+            margin: 0.5rem 0;
+        }
+
+        .kot-section {
+            margin-bottom: 1rem;
+            border-bottom: 1px solid black;
+            padding-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .kot-item {
+            margin-bottom: 0.5rem;
+        }
+
+        .kot-footer {
+            text-align: center;
+            font-size: 0.875rem;
+            margin-top: 1rem;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            font-size: 0.875rem;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #1e293b;
+            padding: 0.75rem;
+            text-align: left;
+            color: #cbd5e1;
+            font-weight: 600;
+            border-bottom: 1px solid #64748b;
+        }
+
+        td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #475569;
+        }
+
+        tr:hover {
+            background: #1e293b;
+        }
+
+        .row-voided td {
+            opacity: 0.5;
+            text-decoration: line-through;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #94a3b8;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .footer {
+            background: #0f172a;
+            border-top: 1px solid #334155;
+            text-align: center;
+            padding: 1rem;
+            color: #94a3b8;
+            font-size: 0.875rem;
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        /* Connection / storage status. Deliberately always visible: a till that
+           has quietly lost the server must not look identical to one that
+           hasn't, because the cashier will keep taking orders either way. */
+        .status-dot {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .status-dot::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #64748b;
+        }
+
+        .status-dot.ok::before {
+            background: #22c55e;
+        }
+
+        .status-dot.warn::before {
+            background: #f59e0b;
+        }
+
+        .status-dot.down::before {
+            background: #ef4444;
+        }
+
+        /* Login */
+        .login-overlay {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .login-card {
+            background: #334155;
+            border: 1px solid #475569;
+            border-top: 3px solid #ffd700;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            width: 100%;
+            max-width: 380px;
+            box-shadow: 0 12px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .login-card h2 {
+            color: #ffd700;
+            margin-bottom: 0.25rem;
+            font-size: 1.375rem;
+        }
+
+        .login-card .sub {
+            color: #94a3b8;
+            font-size: 0.8125rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Toast */
+        .toast-stack {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 200;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-width: 360px;
+        }
+
+        .toast {
+            background: #1e293b;
+            border: 1px solid #475569;
+            border-left: 4px solid #64748b;
+            border-radius: 0.375rem;
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+        }
+
+        .toast.success {
+            border-left-color: #22c55e;
+        }
+
+        .toast.error {
+            border-left-color: #ef4444;
+        }
+
+        .toast.warn {
+            border-left-color: #f59e0b;
+        }
+
+        .toast .t-title {
+            font-weight: 700;
+            margin-bottom: 0.15rem;
+        }
+
+        .toast .t-body {
+            color: #cbd5e1;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 150;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .modal {
+            background: #334155;
+            border: 1px solid #475569;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .modal h3 {
+            margin-bottom: 0.75rem;
+        }
+
+        .modal p {
+            color: #cbd5e1;
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+        }
+
+        .modal-actions .btn {
+            min-width: 96px;
+        }
+
+        .skeleton {
+            background: linear-gradient(90deg, #3f4c60 25%, #4a5871 50%, #3f4c60 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.2s infinite;
+            border-radius: 0.375rem;
+            height: 92px;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .grid-2col {
+                grid-template-columns: 1fr;
+            }
+
+            .grid-2-2col {
+                grid-template-columns: 1fr;
+            }
+
+            .menu-grid {
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            }
+
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            .nav-tabs {
+                display: none;
+                flex-direction: column;
+                position: absolute;
+                top: 5rem;
+                left: 0;
+                right: 0;
+                background: #1e293b;
+                border-bottom: 1px solid #334155;
+                z-index: 30;
+                flex-wrap: nowrap;
+            }
+
+            .nav-tabs.active {
+                display: flex;
+            }
+
+            .nav-tab {
+                flex: auto;
+                border: none;
+                min-width: auto;
+            }
+
+            .main-content {
+                padding: 1rem 0.5rem;
+            }
+
+            .card {
+                padding: 1rem;
+            }
+        }
+
+        @media print {
+
+            .pos-header,
+            .nav-tabs,
+            .footer,
+            .toast-stack,
+            .login-overlay,
+            .main-content>.content-wrapper> :not(#kotTab),
+            #kotButtons {
+                display: none !important;
+            }
+
+            body {
+                background: white;
+                overflow: visible;
+                height: auto;
+            }
+
+            .main-content {
+                overflow: visible;
+                padding: 0;
+            }
+
+            .kot-preview {
+                margin: 0;
+                box-shadow: none;
+                border: 2px solid black;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+    <!-- Login gate. Rendered first and removed only after /api/auth/me succeeds, so
+     a till never shows order controls it cannot actually use. -->
+    <!--
+  method="post" action="/api/auth/login" is a safety net, not the normal path.
+  app.js intercepts the submit event and sends this as JSON over fetch, which
+  is what actually happens on every working till.
+
+  It matters because a browser that fails to load app.js for any reason (a
+  misconfigured "always use HTTPS" setting has done exactly this) falls back to
+  submitting the bare HTML form. A form with no method/action defaults to GET
+  to the current page, which puts name and PIN in plain text in the URL bar,
+  browser history, and any proxy log that records URLs. Pointing the fallback
+  at the real POST endpoint means even total JS failure only produces a login
+  error, never a leaked PIN.
+-->
+    <div class="login-overlay" id="loginOverlay">
+        <form class="login-card" id="loginForm" method="post" action="/api/auth/login">
+            <h2>🍽️ Restaurant POS</h2>
+            <div class="sub">Sign in to start taking orders</div>
+            <div class="form-group">
+                <label class="form-label" for="loginName">Your name</label>
+                <input class="form-input" id="loginName" name="name" autocomplete="username" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="loginPin">PIN</label>
+                <input class="form-input" id="loginPin" name="pin" type="password" inputmode="numeric"
+                    autocomplete="current-password" maxlength="8" required>
+            </div>
+            <div class="field-error" id="loginError"></div>
+            <!-- Starts disabled: only app.js enables it, once it has confirmed it
+             loaded and attached the real submit handler. If JS never runs, the
+             button stays disabled and pressing Enter in a field does not
+             trigger a native submit either, since there is no enabled submit
+             control for the browser to use. -->
+            <button class="btn btn-primary" style="width:100%" type="submit" id="loginBtn" disabled>Sign in</button>
+            <noscript>
+                <div class="field-error" style="margin-top:0.5rem">
+                    This till needs JavaScript enabled to sign in safely.
+                </div>
+            </noscript>
+        </form>
+    </div>
+
+    <div class="pos-container hidden" id="posApp">
+        <header class="pos-header">
+            <div class="header-content">
+                <div class="header-title">
+                    <h1>🍽️ Restaurant POS</h1>
+                    <p>Point of Sale Management System</p>
+                </div>
+                <div class="header-right">
+                    <div class="user-chip" id="userChip"></div>
+                    <button class="btn btn-secondary" id="logoutBtn" type="button">Sign out</button>
+                    <button class="mobile-menu-btn" id="mobileMenuBtn" type="button">☰</button>
+                </div>
+            </div>
+        </header>
+
+        <nav class="nav-tabs" id="navTabs">
+            <button class="nav-tab active" data-tab="order" type="button">📋 Order</button>
+            <button class="nav-tab" data-tab="menu" type="button">🍴 Menu</button>
+            <button class="nav-tab" data-tab="kot" type="button">🖨️ KOT</button>
+            <button class="nav-tab" data-tab="reports" type="button">📊 Reports</button>
+            <button class="nav-tab" data-tab="staff" data-requires="users:manage" type="button">👥 Staff</button>
+        </nav>
+
+        <div class="main-content">
+            <div class="content-wrapper">
+
+                <!-- ORDER -->
+                <div id="orderTab" class="grid-2col">
+                    <div>
+                        <div class="card">
+                            <!-- Breadcrumb doubles as the back control. On a busy till the
+                             most common action after picking a category is going back
+                             for the next one, so it needs to be a large, obvious target
+                             rather than relying on the browser back button. -->
+                            <div class="card-header" id="browseHeader">
+                                <button class="crumb-back hidden" id="categoryBack" type="button"
+                                    aria-label="Back to categories">←</button>
+                                <span id="browseTitle">📋 Categories</span>
+                            </div>
+                            <div class="form-group">
+                                <input class="form-input" id="menuSearch" placeholder="Search all items…"
+                                    autocomplete="off">
+                            </div>
+                            <!-- Two panes, one visible at a time. Search results bypass
+                             categories entirely, because someone who types "momo"
+                             wants the item, not a navigation lesson. -->
+                            <div class="menu-grid" id="categoryGrid"></div>
+                            <div class="menu-grid hidden" id="menuGrid"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="card">
+                            <div class="card-header">🛒 Current Order</div>
+                            <div class="form-group">
+                                <label class="form-label" for="orderNumber">
+                                    Order Number
+                                    <span class="onb-badge" id="orderNumberBadge">auto</span>
+                                </label>
+                                <div class="order-number-row">
+                                    <!-- inputmode="numeric" brings up the number pad on a tablet
+                                     without blocking alphanumeric tokens like "A12", which
+                                     type="number" would reject outright. -->
+                                    <input type="text" id="orderNumber" class="form-input order-number-input"
+                                        placeholder="…" maxlength="16" inputmode="numeric" autocomplete="off">
+                                    <button class="btn btn-secondary onb-reset hidden" id="orderNumberReset"
+                                        type="button" title="Back to the automatic number">↺</button>
+                                </div>
+                                <div class="field-error" id="orderNumberWarn"></div>
+                            </div>
+                            <div class="cart-items-list" id="cartItems"></div>
+                            <div id="billingDetails" class="hidden">
+                                <div class="billing-section">
+                                    <div class="billing-total">
+                                        <span>Total:</span>
+                                        <span class="amount" id="total">₹0.00</span>
+                                    </div>
+                                </div>
+                                <div class="form-group" style="margin-top:1rem">
+                                    <label class="form-label">Payment mode</label>
+                                    <div class="payment-modes" id="paymentModes">
+                                        <button class="pay-btn selected" data-mode="cash" type="button">💵 Cash</button>
+                                        <button class="pay-btn" data-mode="card" type="button">💳 Card</button>
+                                        <button class="pay-btn" data-mode="upi" type="button">📱 UPI</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="button-group" style="margin-top: 1rem;">
+                                <button class="btn btn-primary" id="kotBtn" type="button" disabled>🖨️ KOT
+                                    Print</button>
+                                <button class="btn btn-success" id="billBtn" type="button" disabled>💰 Complete
+                                    Billing</button>
+                                <button class="btn btn-secondary" id="clearCartBtn" type="button" disabled>Clear
+                                    order</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MENU -->
+                <div id="menuTab" class="grid-2col hidden">
+                    <div>
+                        <div class="card">
+                            <div class="card-header">➕ Add New Item</div>
+                            <form id="menuForm">
+                                <div class="form-group">
+                                    <label class="form-label" for="itemName">Item Name</label>
+                                    <input type="text" id="itemName" class="form-input" placeholder="Item Name"
+                                        maxlength="80">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="itemCategory">Category</label>
+                                    <input type="text" id="itemCategory" class="form-input" placeholder="Category"
+                                        list="categoryList" maxlength="40">
+                                    <datalist id="categoryList"></datalist>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="itemPrice">Price</label>
+                                    <input type="number" id="itemPrice" class="form-input" placeholder="Price"
+                                        min="0.01" step="0.01">
+                                </div>
+                                <div class="field-error" id="menuFormError"></div>
+                                <button class="btn btn-primary" style="width: 100%;" type="submit" id="addItemBtn">Add
+                                    Item</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="card">
+                            <div class="card-header">📝 Menu Items</div>
+                            <div id="menuList"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KOT -->
+                <div id="kotTab" class="hidden" style="text-align: center;">
+                    <div id="kotContent">
+                        <div class="empty-state">👁️ No KOT to display. Generate one from the Order tab.</div>
+                    </div>
+                    <div id="kotButtons" class="hidden"
+                        style="margin-top: 1.5rem; display:flex; gap:0.5rem; justify-content:center;">
+                        <button class="btn btn-primary" id="printKotBtn" type="button">🖨️ Print KOT</button>
+                        <button class="btn btn-secondary" id="clearKotBtn" type="button">Clear</button>
+                    </div>
+                </div>
+
+                <!-- REPORTS -->
+                <div id="reportsTab" class="hidden">
+                    <div class="card" style="margin-bottom:1.5rem">
+                        <div style="display:flex; gap:1rem; align-items:flex-end; flex-wrap:wrap">
+                            <div class="form-group" style="margin:0">
+                                <label class="form-label" for="reportDate">Business date</label>
+                                <input type="date" id="reportDate" class="form-input">
+                            </div>
+                            <button class="btn btn-secondary" id="refreshReportBtn" type="button">Refresh</button>
+                            <button class="btn btn-primary" id="exportBtn" data-requires="data:export" type="button">⬇️
+                                Export to Excel</button>
+                            <button class="btn btn-secondary" id="flushBtn" data-requires="data:export" type="button">💾
+                                Save workbook now</button>
+                        </div>
+                    </div>
+                    <div class="grid-4col" id="statsCards"></div>
+                    <div class="card">
+                        <div class="card-header">📊 Orders</div>
+                        <div class="table-container">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Order No</th>
+                                        <th>Invoice</th>
+                                        <th>Time</th>
+                                        <th>Payment</th>
+                                        <th>Cashier</th>
+                                        <th>Items</th>
+                                        <th style="text-align: right;">Total</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ordersBody">
+                                    <tr>
+                                        <td colspan="8" class="empty-state">No orders yet</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STAFF -->
+                <div id="staffTab" class="grid-2col hidden">
+                    <div>
+                        <div class="card">
+                            <div class="card-header">👤 Add Staff</div>
+                            <form id="staffForm">
+                                <div class="form-group">
+                                    <label class="form-label" for="staffName">Name</label>
+                                    <input class="form-input" id="staffName" maxlength="40">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="staffRole">Role</label>
+                                    <select class="form-select" id="staffRole">
+                                        <option value="cashier">Cashier — take orders</option>
+                                        <option value="manager">Manager — full access</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="staffPin">PIN (4–8 digits)</label>
+                                    <input class="form-input" id="staffPin" inputmode="numeric" maxlength="8">
+                                </div>
+                                <div class="field-error" id="staffFormError"></div>
+                                <button class="btn btn-primary" style="width:100%" type="submit">Add staff
+                                    member</button>
+                            </form>
+                        </div>
+                        <div class="card" style="margin-top:1.5rem">
+                            <div class="card-header">🔑 Change my PIN</div>
+                            <form id="pinForm">
+                                <div class="form-group">
+                                    <label class="form-label" for="currentPin">Current PIN</label>
+                                    <input class="form-input" id="currentPin" type="password" inputmode="numeric"
+                                        maxlength="8">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="newPin">New PIN</label>
+                                    <input class="form-input" id="newPin" type="password" inputmode="numeric"
+                                        maxlength="8">
+                                </div>
+                                <div class="field-error" id="pinFormError"></div>
+                                <button class="btn btn-secondary" style="width:100%" type="submit">Update PIN</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="card">
+                            <div class="card-header">👥 Staff</div>
+                            <div id="staffList"></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <div class="footer">
+            <span>🍽️ Restaurant POS v1.0</span>
+            <span class="status-dot" id="connStatus">Connecting…</span>
+            <span class="status-dot" id="storageStatus">Workbook</span>
+        </div>
+    </div>
+
+    <div id="modalRoot"></div>
+
+    <script src="/app.js"></script>
+</body>
+
+</html>

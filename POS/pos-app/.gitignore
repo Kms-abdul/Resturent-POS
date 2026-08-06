@@ -1,0 +1,13 @@
+node_modules/
+.env
+
+# The workbook, journal and backups are live business data, not source. They
+# contain every sale and every staff account. Committing them puts your
+# restaurant's finances in your git history permanently.
+data/
+*.xlsx
+!docs/**/*.xlsx
+
+npm-debug.log*
+.DS_Store
+Thumbs.db
