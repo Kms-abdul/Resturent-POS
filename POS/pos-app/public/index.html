@@ -1163,9 +1163,15 @@
                                     <datalist id="categoryList"></datalist>
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label" for="itemPrice">Price</label>
-                                    <input type="number" id="itemPrice" class="form-input" placeholder="Price"
-                                        min="0.01" step="0.01">
+                                    <label class="form-label">Pricing</label>
+                                    <div style="display:flex; gap:1rem;">
+                                        <div style="flex:1">
+                                            <input type="number" id="itemPrice" class="form-input" placeholder="Single Plate Price" min="0.01" step="0.01" required>
+                                        </div>
+                                        <div style="flex:1">
+                                            <input type="number" id="itemPriceFull" class="form-input" placeholder="Full Plate Price (Optional)" min="0.01" step="0.01">
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="field-error" id="menuFormError"></div>
                                 <button class="btn btn-primary" style="width: 100%;" type="submit" id="addItemBtn">Add

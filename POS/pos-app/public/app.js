@@ -508,8 +508,11 @@ function renderBrowse() {
     itemGrid.classList.remove('hidden');
     back.classList.add('hidden');
     title.textContent = `🔍 ${items.length} result${items.length === 1 ? '' : 's'}`;
-    itemGrid.innerHTML = items.length
-      ? items.map(itemTile).join('')
+    
+    const groupedItems = Object.values(groupMenuVariants(items));
+    
+    itemGrid.innerHTML = groupedItems.length
+      ? groupedItems.map(groupTile).join('')
       : '<div class="empty-state">No items match that search.</div>';
     return;
   }
@@ -544,9 +547,33 @@ function renderBrowse() {
   itemGrid.classList.remove('hidden');
   back.classList.remove('hidden');
   title.textContent = state.activeCategory;
-  itemGrid.innerHTML = items.length
-    ? items.map(itemTile).join('')
+  
+  const groupedItems = Object.values(groupMenuVariants(items));
+  
+  itemGrid.innerHTML = groupedItems.length
+    ? groupedItems.map(groupTile).join('')
     : '<div class="empty-state">Nothing left in this category.</div>';
+}
+
+function groupMenuVariants(itemsList) {
+  const grouped = {};
+  itemsList.forEach(i => {
+    let baseName = i.name;
+    let variant = 'normal';
+    if (baseName.endsWith('(Single)')) {
+      baseName = baseName.replace(' (Single)', '');
+      variant = 'single';
+    } else if (baseName.endsWith('(Full)')) {
+      baseName = baseName.replace(' (Full)', '');
+      variant = 'full';
+    }
+    
+    if (!grouped[baseName]) {
+      grouped[baseName] = { baseName, category: i.category, normal: null, single: null, full: null };
+    }
+    grouped[baseName][variant] = i;
+  });
+  return grouped;
 }
 
 function itemTile(item) {
@@ -557,6 +584,39 @@ function itemTile(item) {
       <div class="menu-item-footer">
         <div class="menu-item-price">${fmt(item.price)}</div>
         <button class="menu-item-btn" data-add="${item.id}" type="button" aria-label="Add ${escapeHtml(item.name)}">+</button>
+      </div>
+    </div>`;
+}
+
+function groupTile(g) {
+  if (g.normal || (!g.single && !g.full)) {
+    return itemTile(g.normal || g.single || g.full);
+  }
+
+  return `
+    <div class="menu-item" role="button" tabindex="0">
+      <div class="menu-item-name">${escapeHtml(g.baseName)}</div>
+      <div class="menu-item-category">${escapeHtml(g.category)}</div>
+      
+      <div style="margin-top:auto; display:flex; flex-direction:column; gap:0.5rem; padding-top:1rem;">
+        ${g.single ? `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.2); padding:0.35rem 0.5rem; border-radius:0.375rem; border: 1px solid #475569;">
+          <div style="font-size:0.75rem; color:#94a3b8; font-weight:700;">SINGLE</div>
+          <div style="display:flex; align-items:center; gap:0.75rem;">
+            <div style="color:#ffd700; font-weight:700;">${fmt(g.single.price)}</div>
+            <button class="menu-item-btn" style="width:26px; height:26px; font-size:1.1rem; padding:0; display:flex; align-items:center; justify-content:center;" data-add="${g.single.id}" type="button">+</button>
+          </div>
+        </div>
+        ` : ''}
+        ${g.full ? `
+        <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(0,0,0,0.2); padding:0.35rem 0.5rem; border-radius:0.375rem; border: 1px solid #475569;">
+          <div style="font-size:0.75rem; color:#94a3b8; font-weight:700;">FULL</div>
+          <div style="display:flex; align-items:center; gap:0.75rem;">
+            <div style="color:#ffd700; font-weight:700;">${fmt(g.full.price)}</div>
+            <button class="menu-item-btn" style="width:26px; height:26px; font-size:1.1rem; padding:0; display:flex; align-items:center; justify-content:center;" data-add="${g.full.id}" type="button">+</button>
+          </div>
+        </div>
+        ` : ''}
       </div>
     </div>`;
 }
@@ -660,18 +720,31 @@ $('menuForm').addEventListener('submit', async (e) => {
   $('menuFormError').textContent = '';
   btn.disabled = true;
   try {
-    await api('/menu', {
-      method: 'POST',
-      body: {
-        name: $('itemName').value.trim(),
-        category: $('itemCategory').value.trim(),
-        price: $('itemPrice').value,
-      },
-    });
+    const name = $('itemName').value.trim();
+    const category = $('itemCategory').value.trim();
+    const priceSingle = parseFloat($('itemPrice').value);
+    const priceFull = parseFloat($('itemPriceFull').value);
+
+    const itemsToCreate = [];
+    if (!isNaN(priceFull) && priceFull > 0) {
+      itemsToCreate.push({ name: `${name} (Single)`, category, price: priceSingle });
+      itemsToCreate.push({ name: `${name} (Full)`, category, price: priceFull });
+    } else {
+      itemsToCreate.push({ name, category, price: priceSingle });
+    }
+
+    for (const item of itemsToCreate) {
+      await api('/menu', {
+        method: 'POST',
+        body: item,
+      });
+    }
+
     $('itemName').value = '';
     $('itemCategory').value = '';
     $('itemPrice').value = '';
-    toast('success', 'Item added');
+    $('itemPriceFull').value = '';
+    toast('success', itemsToCreate.length > 1 ? 'Variants added' : 'Item added');
     await refreshMenu();
   } catch (err) {
     const detail = err.details && err.details[0] ? `${err.details[0].message}` : err.message;
@@ -1290,17 +1363,39 @@ async function loadKitchen() {
     const aggregatedItems = {};
     pendingOrders.forEach(o => {
       o.items.forEach(i => {
-        if (!aggregatedItems[i.name]) aggregatedItems[i.name] = 0;
-        aggregatedItems[i.name] += i.quantity;
+        let baseName = i.name;
+        let variant = 'normal';
+        if (baseName.endsWith('(Single)')) {
+          baseName = baseName.replace(' (Single)', '');
+          variant = 'single';
+        } else if (baseName.endsWith('(Full)')) {
+          baseName = baseName.replace(' (Full)', '');
+          variant = 'full';
+        }
+        
+        if (!aggregatedItems[baseName]) {
+          aggregatedItems[baseName] = { single: 0, full: 0, normal: 0 };
+        }
+        aggregatedItems[baseName][variant] += i.quantity;
       });
     });
 
-    const chefHtml = Object.entries(aggregatedItems).map(([name, qty]) => `
-      <div style="display:flex; justify-content:space-between; padding: 0.75rem; border-bottom: 1px solid #475569; align-items:center;">
-        <span style="font-weight:600; font-size:1.1rem;">${escapeHtml(name)}</span>
-        <span style="font-weight:700; color:#fbbf24; font-size:1.4rem;">${qty}</span>
+    const chefHtml = Object.entries(aggregatedItems).map(([name, counts]) => {
+      let qtyHtml = '';
+      if (counts.normal > 0) qtyHtml += `<span style="font-weight:800; color:#fbbf24; font-size:1.6rem;">${counts.normal}</span>`;
+      if (counts.single > 0 || counts.full > 0) {
+        qtyHtml += `<div style="display:flex; gap:0.75rem; font-size:1.1rem; color:#cbd5e1; align-items:center;">`;
+        if (counts.single > 0) qtyHtml += `<span style="background:#475569; padding:0.25rem 0.5rem; border-radius:0.25rem;">Sngl: <b style="color:#fbbf24; font-size:1.3rem;">${counts.single}</b></span>`;
+        if (counts.full > 0) qtyHtml += `<span style="background:#475569; padding:0.25rem 0.5rem; border-radius:0.25rem;">Full: <b style="color:#fbbf24; font-size:1.3rem;">${counts.full}</b></span>`;
+        qtyHtml += `</div>`;
+      }
+      return `
+      <div style="display:flex; justify-content:space-between; padding: 0.5rem 0.75rem; border-bottom: 1px solid #475569; align-items:center;">
+        <span style="font-weight:700; font-size:1.25rem;">${escapeHtml(name)}</span>
+        <div>${qtyHtml}</div>
       </div>
-    `).join('');
+      `;
+    }).join('');
 
     $('chefViewContent').innerHTML = chefHtml || '<div class="empty-state">No items to cook right now.</div>';
 
