@@ -231,6 +231,24 @@ function loadCart() {
   }
 }
 
+function saveKotHistory() {
+  localStorage.setItem('pos_kot_history', JSON.stringify(state.kotHistory));
+}
+
+function loadKotHistory() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('pos_kot_history'));
+    if (stored && Array.isArray(stored)) {
+      state.kotHistory = stored.map(k => ({
+        ...k,
+        timestamp: new Date(k.timestamp)
+      }));
+    }
+  } catch (e) {
+    state.kotHistory = [];
+  }
+}
+
 function clearCart() {
   state.cart = [];
   state.orderNumber = '';
@@ -716,11 +734,11 @@ function renderCart() {
   const hasItems = state.cart.length > 0;
   const hasNumber = ($('orderNumber').value || '').trim().length > 0;
 
-  $('kotBtn').disabled = !hasItems || !hasNumber;
+  $('printBillBtn').disabled = !hasItems || !hasNumber;
   $('billBtn').disabled = !hasItems || !hasNumber || !state.kotPrinted || state.submitting;
 
   if (!state.kotPrinted && hasItems && hasNumber) {
-    $('billBtn').title = "Please print KOT first";
+    $('billBtn').title = "Please print receipt first";
   } else {
     $('billBtn').title = "";
   }
@@ -836,26 +854,27 @@ function printKOT(kotId) {
   });
 }
 
-$('kotBtn').addEventListener('click', () => {
-  // Whatever is in the field is what goes on the ticket -- the auto number
-  // normally, the cashier's override if they changed it. The button is disabled
-  // while the field is empty, so there is no unnumbered-ticket path here.
-  const newKOT = {
-    id: `KOT-${Date.now()}`,
+$('printBillBtn').addEventListener('click', () => {
+  const tempOrder = {
+    id: `EST-${Date.now()}`,
     orderNumber: ($('orderNumber').value || '').trim(),
-    items: state.cart.map((l) => ({ name: l.name, quantity: l.quantity })),
-    timestamp: new Date(),
-    cashier: state.user.name,
+    items: state.cart.map((l) => ({ name: l.name, quantity: l.quantity, lineTotal: l.price * l.quantity })),
+    total: state.cart.reduce((sum, l) => sum + l.price * l.quantity, 0),
+    paymentMode: 'Pending',
+    createdAt: new Date().toISOString()
   };
-  state.kotHistory.unshift(newKOT);
-
+  
   state.kotPrinted = true;
-
-  renderKOT();
   renderCart(); // Re-evaluate billBtn disabled state
-
-  // Directly print the newly generated KOT
-  printKOT(newKOT.id);
+  
+  renderReceipt(tempOrder);
+  setTimeout(() => {
+    document.querySelectorAll('.receipt-preview').forEach((el) => {
+      el.classList.remove('hidden-print');
+    });
+    window.print();
+    switchTab('order');
+  }, 100);
 });
 
 $('kotContent').addEventListener('click', (e) => {
@@ -874,28 +893,29 @@ function renderKOT() {
     .map(
       (k) => `
     <div class="kot-preview" data-id="${escapeHtml(k.id)}">
-      <div class="receipt-header">
-        <div class="receipt-title">🍽️ Chinese Nawab</div>
-        <div style="font-size:1.1rem; font-weight:bold; margin-top:0.5rem;">KITCHEN ORDER TICKET</div>
-        <div style="font-size:1.25rem; font-weight:bold; margin:0.5rem 0;">Order: #${escapeHtml(k.orderNumber)}</div>
-        <div>Date: ${escapeHtml(k.timestamp.toLocaleString())}</div>
+      <div class="kot-header">
+        <div class="kot-title">KITCHEN ORDER TICKET</div>
+        <div class="kot-divider">─────────────────────────</div>
+      </div>
+      <div class="kot-section" style="text-align:center">
+        <div style="font-size:2rem;font-weight:800;line-height:1.1">
+          ORDER #${escapeHtml(k.orderNumber)}
+        </div>
+      </div>
+      <div class="kot-section">
+        <div>Time: ${escapeHtml(k.timestamp.toLocaleTimeString())}</div>
         <div>Taken by: ${escapeHtml(k.cashier)}</div>
       </div>
-      <div class="receipt-section">
-        <div class="receipt-item" style="font-weight:bold; border-bottom:1px dashed black; margin-bottom:0.5rem; padding-bottom:0.25rem;">
-          <span style="flex:3; text-align:left;">Item</span>
-          <span style="flex:1; text-align:right;">Qty</span>
-        </div>
+      <div class="kot-section">
+        <div><strong>ITEMS:</strong></div>
         ${k.items
-          .map((i) => `
-          <div class="receipt-item">
-            <span style="flex:3; text-align:left;">${escapeHtml(i.name)}</span>
-            <span style="flex:1; text-align:right; font-weight:bold; font-size:1.1rem;">${i.quantity}</span>
-          </div>`)
+          .map((i) => `<div class="kot-item">• ${escapeHtml(i.name)} x ${i.quantity}</div>`)
           .join('')}
       </div>
-      <div class="receipt-footer">
-        <div style="font-weight:bold; font-size:1.1rem;">PLEASE PREPARE ORDER</div>
+      <div class="kot-footer">
+        <div>═════════════════════════</div>
+        <div><strong>PLEASE PREPARE ORDER</strong></div>
+        <div>═════════════════════════</div>
       </div>
       <div class="kot-actions no-print" style="margin-top: 1rem;">
         <button class="btn btn-secondary" style="margin: 0 auto;" data-print-kot="${escapeHtml(k.id)}" type="button">🖨️ Print Again</button>
@@ -910,6 +930,7 @@ function renderKOT() {
 $('printKotBtn').addEventListener('click', () => window.print());
 $('clearKotBtn').addEventListener('click', () => {
   state.kotHistory = [];
+  saveKotHistory();
   renderKOT();
 });
 
@@ -945,14 +966,28 @@ $('billBtn').addEventListener('click', async () => {
 
     if (duplicate) {
       toast('warn', 'Already billed', `Order #${order.orderNumber} was already recorded. Not charged twice.`);
-      renderReceipt(order);
     } else {
       toast(
         'success',
         `Order #${order.orderNumber} complete`,
         `${fmt(order.total)} — ${order.paymentMode} — ${order.id}`
       );
-      renderReceipt(order);
+      
+      const newKOT = {
+        id: order.id,
+        orderNumber: order.orderNumber,
+        items: order.items,
+        timestamp: new Date(order.createdAt),
+        cashier: order.createdBy || 'Cashier',
+      };
+      
+      if (!state.kotHistory.find(k => k.id === newKOT.id)) {
+        state.kotHistory.unshift(newKOT);
+        if (state.kotHistory.length > 50) state.kotHistory = state.kotHistory.slice(0, 50);
+        saveKotHistory();
+        renderKOT();
+      }
+      printKOT(newKOT.id);
     }
     clearCart();
   } catch (err) {
@@ -1004,9 +1039,10 @@ function renderReceipt(order) {
         <span>TOTAL</span>
         <span>${fmt(order.total)}</span>
       </div>
+      ${order.paymentMode && order.paymentMode !== 'Pending' ? `
       <div class="receipt-section" style="margin-top:0.5rem; text-align:right;">
         Payment: ${escapeHtml(order.paymentMode)}
-      </div>
+      </div>` : ''}
       <div class="receipt-footer">
         <div>Thank you for your visit!</div>
       </div>
@@ -1331,4 +1367,40 @@ if ($('packerViewContent')) {
   setInterval(() => {
     if (state.user) refreshMenu().catch(() => { });
   }, 120000);
+  
+  // Real-time events
+  const evtSource = new EventSource('/api/events');
+  evtSource.addEventListener('new_order', (e) => {
+    try {
+      const order = JSON.parse(e.data);
+      const newKOT = {
+        id: order.id,
+        orderNumber: order.orderNumber,
+        items: order.items,
+        timestamp: new Date(order.createdAt),
+        cashier: order.createdBy || 'Cashier',
+      };
+      state.kotHistory.unshift(newKOT);
+      // Keep only last 50 KOTs to avoid localStorage bloat
+      if (state.kotHistory.length > 50) state.kotHistory = state.kotHistory.slice(0, 50);
+      saveKotHistory();
+      renderKOT();
+      if (localStorage.getItem('isKitchenMachine') === 'true') {
+        printKOT(newKOT.id);
+      }
+    } catch (err) {
+      console.error('SSE Error:', err);
+    }
+  });
+
+  // Kitchen auto-print toggle
+  if ($('kitchenAutoPrint')) {
+    $('kitchenAutoPrint').checked = localStorage.getItem('isKitchenMachine') === 'true';
+    $('kitchenAutoPrint').addEventListener('change', (e) => {
+      localStorage.setItem('isKitchenMachine', e.target.checked);
+      if (e.target.checked) toast('success', 'Auto-Print Enabled', 'KOTs will automatically print on this device.');
+    });
+  }
+  
+  loadKotHistory();
 })();

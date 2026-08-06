@@ -3,6 +3,7 @@
 const express = require('express');
 const orderService = require('../services/order.service');
 const { authenticate, require: requirePerm } = require('../middleware/auth');
+const { broadcast } = require('../lib/events');
 
 const router = express.Router();
 
@@ -30,6 +31,9 @@ router.post('/', requirePerm('orders:create'), async (req, res, next) => {
     );
     // 200 rather than 201 on a replay, so the till can tell "your order was
     // already recorded" apart from "a second order was just created".
+    if (!duplicate) {
+      broadcast('new_order', order);
+    }
     res.status(duplicate ? 200 : 201).json({ order, duplicate });
   } catch (err) {
     next(err);

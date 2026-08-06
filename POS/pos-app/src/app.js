@@ -104,6 +104,7 @@ function createApp() {
   app.use('/api/orders', require('./routes/orders.routes'));
   app.use('/api/users', require('./routes/users.routes'));
   app.use('/api/reports', require('./routes/reports.routes'));
+  app.use('/api/events', require('./routes/events.routes'));
 
   app.use(express.static(path.join(__dirname, '..', 'public'), { index: 'index.html' }));
 

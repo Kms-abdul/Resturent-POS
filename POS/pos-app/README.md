@@ -265,9 +265,14 @@ hundred orders a day, one location. The signals that you've outgrown it:
 
 The migration is smaller than it looks: `src/store/excelStore.js` is the only
 file that knows about spreadsheets. Every service above it works through
-`store.mutate()` and `store.all()`. Swapping in SQLite means reimplementing that
-one file against those same methods, and keeping an hourly Excel export so
-nothing about the owner's habits has to change.
+`store.mutate()` and `store.all()`. Swapping in a real database means reimplementing that
+one file against those same methods (like an ORM adapter), keeping the rest of the business logic completely untouched.
+
+### Future Architecture Roadmap (Microservices & Frontend Scaling)
+As the application expands to support a massive volume of clients and additional features, the architecture is ready to be broken out:
+1. **Frontend Modularization (Solving the 1800-line index.html):** When the single-file UI becomes too large, we will migrate the frontend into a component framework (like React or Vue). The monolithic `index.html` and `app.js` will be cleanly separated into isolated components (e.g., `<OrderScreen />`, `<Reports />`, `<KitchenKDS />`) using a build tool like Vite.
+2. **Microservice Splitting:** The Node.js backend (`src/services/*`) is already decoupled by domain. As traffic scales, we can spin out the `order.service.js` and `menu.service.js` into distinct Microservices, each with their own dedicated database (PostgreSQL/MongoDB). 
+3. **Event-Driven Auto-Printing:** Replacing local printing with a WebSocket/Server-Sent Events (SSE) gateway that broadcasts KOTs and Bills to dedicated print nodes on the network securely.
 
 ---
 

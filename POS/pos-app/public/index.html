@@ -1134,9 +1134,8 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="button-group" style="margin-top: 1rem;">
-                                <button class="btn btn-primary" id="kotBtn" type="button" disabled>🖨️ KOT
-                                    Print</button>
+                            <div class="button-group" style="margin-top: 1rem; display:flex; flex-direction:column; gap:0.5rem">
+                                <button class="btn btn-warning" id="printBillBtn" type="button" disabled>🖨️ Print Receipt</button>
                                 <button class="btn btn-success" id="billBtn" type="button" disabled>💰 Complete
                                     Billing</button>
                                 <button class="btn btn-secondary" id="clearCartBtn" type="button" disabled>Clear
@@ -1210,7 +1209,13 @@
                 <div id="kitchenTab" class="hidden">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <h2>👨‍🍳 Kitchen Display System</h2>
-                        <button class="btn btn-secondary" id="refreshKitchenBtn" type="button">🔄 Refresh</button>
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                            <label style="display:flex; align-items:center; gap:0.5rem; background:#334155; padding:0.5rem 1rem; border-radius:0.5rem; cursor:pointer;">
+                                <input type="checkbox" id="kitchenAutoPrint" style="width:1.2rem; height:1.2rem;">
+                                <span style="font-weight:600; font-size:0.9rem;">Auto-Print KOTs</span>
+                            </label>
+                            <button class="btn btn-secondary" id="refreshKitchenBtn" type="button">🔄 Refresh</button>
+                        </div>
                     </div>
                     <div class="grid-2col">
                         <div>
