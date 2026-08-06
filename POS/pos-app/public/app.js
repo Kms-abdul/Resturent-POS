@@ -162,6 +162,7 @@ const state = {
   reservingNumber: false,
   paymentMode: 'cash',
   clientRef: null,
+  kotPrinted: false,
   kotHistory: [],
   orders: [],
   submitting: false,
@@ -206,6 +207,7 @@ function saveCart() {
         orderNumberManual: state.orderNumberManual,
         paymentMode: state.paymentMode,
         clientRef: state.clientRef,
+        kotPrinted: state.kotPrinted,
       })
     );
   } catch {
@@ -223,6 +225,7 @@ function loadCart() {
     state.orderNumberManual = Boolean(saved.orderNumberManual);
     state.paymentMode = saved.paymentMode || 'cash';
     state.clientRef = saved.clientRef || null;
+    state.kotPrinted = Boolean(saved.kotPrinted);
   } catch {
     localStorage.removeItem(CART_KEY);
   }
@@ -233,6 +236,7 @@ function clearCart() {
   state.orderNumber = '';
   state.orderNumberManual = false;
   state.clientRef = null;
+  state.kotPrinted = false;
   localStorage.removeItem(CART_KEY);
   $('orderNumber').value = '';
   renderOrderNumberUi();
@@ -395,7 +399,7 @@ $('logoutBtn').addEventListener('click', async () => {
     });
     if (!ok) return;
   }
-  await api('/auth/logout', { method: 'POST' }).catch(() => {});
+  await api('/auth/logout', { method: 'POST' }).catch(() => { });
   state.user = null;
   showLogin();
 });
@@ -405,7 +409,7 @@ $('logoutBtn').addEventListener('click', async () => {
 // ---------------------------------------------------------------------------
 
 function switchTab(tab) {
-  ['order', 'menu', 'kot', 'reports', 'staff', 'kitchen'].forEach((t) => {
+  ['order', 'menu', 'kot', 'receipt', 'reports', 'staff', 'kitchen'].forEach((t) => {
     const el = $(`${t}Tab`);
     if (el) el.classList.toggle('hidden', t !== tab);
   });
@@ -505,14 +509,14 @@ function renderBrowse() {
     title.textContent = '📋 Categories';
     catGrid.innerHTML = categories.length
       ? categories
-          .map(
-            (c) => `
+        .map(
+          (c) => `
         <div class="category-item" data-category="${escapeHtml(c)}" role="button" tabindex="0">
           <div class="category-name">${escapeHtml(c)}</div>
           <div class="category-count">${counts.get(c)} item${counts.get(c) === 1 ? '' : 's'}</div>
         </div>`
-          )
-          .join('')
+        )
+        .join('')
       : '<div class="empty-state">No menu items yet. Add some on the Menu tab.</div>';
     return;
   }
@@ -597,11 +601,10 @@ function renderMenuList() {
         </div>
         <div style="text-align:right;margin-left:1rem">
           <div style="color:#fbbf24;font-weight:700;margin-bottom:0.25rem">${fmt(item.price)}</div>
-          ${
-            editable
-              ? `<button class="btn btn-secondary" style="font-size:0.75rem;padding:0.25rem 0.5rem" data-remove="${item.id}" type="button">Remove</button>`
-              : ''
-          }
+          ${editable
+          ? `<button class="btn btn-secondary" style="font-size:0.75rem;padding:0.25rem 0.5rem" data-remove="${item.id}" type="button">Remove</button>`
+          : ''
+        }
         </div>
       </div>`
     )
@@ -681,6 +684,7 @@ function addToCart(menuItemId) {
       quantity: 1,
     });
 
+  state.kotPrinted = false;
   renderCart();
 
   // Fire-and-forget: the number appears a moment later without blocking the
@@ -694,6 +698,7 @@ function setQty(menuItemId, qty) {
     const line = state.cart.find((c) => c.menuItemId === menuItemId);
     if (line) line.quantity = Math.min(qty, 999);
   }
+  state.kotPrinted = false;
   renderCart();
 }
 
@@ -712,7 +717,14 @@ function renderCart() {
   const hasNumber = ($('orderNumber').value || '').trim().length > 0;
 
   $('kotBtn').disabled = !hasItems || !hasNumber;
-  $('billBtn').disabled = !hasItems || !hasNumber || state.submitting;
+  $('billBtn').disabled = !hasItems || !hasNumber || !state.kotPrinted || state.submitting;
+
+  if (!state.kotPrinted && hasItems && hasNumber) {
+    $('billBtn').title = "Please print KOT first";
+  } else {
+    $('billBtn').title = "";
+  }
+
   $('clearCartBtn').disabled = !hasItems;
 
   if (!hasItems) {
@@ -837,8 +849,11 @@ $('kotBtn').addEventListener('click', () => {
   };
   state.kotHistory.unshift(newKOT);
 
+  state.kotPrinted = true;
+
   renderKOT();
-  
+  renderCart(); // Re-evaluate billBtn disabled state
+
   // Directly print the newly generated KOT
   printKOT(newKOT.id);
 });
@@ -859,29 +874,28 @@ function renderKOT() {
     .map(
       (k) => `
     <div class="kot-preview" data-id="${escapeHtml(k.id)}">
-      <div class="kot-header">
-        <div class="kot-title">KITCHEN ORDER TICKET</div>
-        <div class="kot-divider">─────────────────────────</div>
-      </div>
-      <div class="kot-section" style="text-align:center">
-        <div style="font-size:2rem;font-weight:800;line-height:1.1">
-          ORDER #${escapeHtml(k.orderNumber)}
-        </div>
-      </div>
-      <div class="kot-section">
-        <div>Time: ${escapeHtml(k.timestamp.toLocaleTimeString())}</div>
+      <div class="receipt-header">
+        <div class="receipt-title">🍽️ Chinese Nawab</div>
+        <div style="font-size:1.1rem; font-weight:bold; margin-top:0.5rem;">KITCHEN ORDER TICKET</div>
+        <div style="font-size:1.25rem; font-weight:bold; margin:0.5rem 0;">Order: #${escapeHtml(k.orderNumber)}</div>
+        <div>Date: ${escapeHtml(k.timestamp.toLocaleString())}</div>
         <div>Taken by: ${escapeHtml(k.cashier)}</div>
       </div>
-      <div class="kot-section">
-        <div><strong>ITEMS:</strong></div>
+      <div class="receipt-section">
+        <div class="receipt-item" style="font-weight:bold; border-bottom:1px dashed black; margin-bottom:0.5rem; padding-bottom:0.25rem;">
+          <span style="flex:3; text-align:left;">Item</span>
+          <span style="flex:1; text-align:right;">Qty</span>
+        </div>
         ${k.items
-          .map((i) => `<div class="kot-item">• ${escapeHtml(i.name)} x ${i.quantity}</div>`)
+          .map((i) => `
+          <div class="receipt-item">
+            <span style="flex:3; text-align:left;">${escapeHtml(i.name)}</span>
+            <span style="flex:1; text-align:right; font-weight:bold; font-size:1.1rem;">${i.quantity}</span>
+          </div>`)
           .join('')}
       </div>
-      <div class="kot-footer">
-        <div>═════════════════════════</div>
-        <div><strong>PLEASE PREPARE ORDER</strong></div>
-        <div>═════════════════════════</div>
+      <div class="receipt-footer">
+        <div style="font-weight:bold; font-size:1.1rem;">PLEASE PREPARE ORDER</div>
       </div>
       <div class="kot-actions no-print" style="margin-top: 1rem;">
         <button class="btn btn-secondary" style="margin: 0 auto;" data-print-kot="${escapeHtml(k.id)}" type="button">🖨️ Print Again</button>
@@ -931,12 +945,14 @@ $('billBtn').addEventListener('click', async () => {
 
     if (duplicate) {
       toast('warn', 'Already billed', `Order #${order.orderNumber} was already recorded. Not charged twice.`);
+      renderReceipt(order);
     } else {
       toast(
         'success',
         `Order #${order.orderNumber} complete`,
         `${fmt(order.total)} — ${order.paymentMode} — ${order.id}`
       );
+      renderReceipt(order);
     }
     clearCart();
   } catch (err) {
@@ -954,6 +970,61 @@ $('billBtn').addEventListener('click', async () => {
     renderCart();
   }
 });
+
+// ---------------------------------------------------------------------------
+// Receipt
+// ---------------------------------------------------------------------------
+
+function renderReceipt(order) {
+  switchTab('receipt');
+
+  const html = `
+    <div class="receipt-preview" data-id="${escapeHtml(order.id)}">
+      <div class="receipt-header">
+        <div class="receipt-title">🍽️ Chinese Nawab</div>
+        <div>Invoice: ${escapeHtml(order.id)}</div>
+        <div>Order: #${escapeHtml(order.orderNumber)}</div>
+        <div>Date: ${escapeHtml(new Date(order.createdAt).toLocaleString())}</div>
+      </div>
+      <div class="receipt-section">
+        <div class="receipt-item" style="font-weight:bold; border-bottom:1px dashed black; margin-bottom:0.5rem; padding-bottom:0.25rem;">
+          <span style="flex:2">Item</span>
+          <span style="flex:1; text-align:center;">Qty</span>
+          <span style="flex:1; text-align:right;">Total</span>
+        </div>
+        ${order.items.map(i => `
+          <div class="receipt-item">
+            <span style="flex:2">${escapeHtml(i.name)}</span>
+            <span style="flex:1; text-align:center;">${i.quantity}</span>
+            <span style="flex:1; text-align:right;">${fmt(i.lineTotal)}</span>
+          </div>
+        `).join('')}
+      </div>
+      <div class="receipt-total">
+        <span>TOTAL</span>
+        <span>${fmt(order.total)}</span>
+      </div>
+      <div class="receipt-section" style="margin-top:0.5rem; text-align:right;">
+        Payment: ${escapeHtml(order.paymentMode)}
+      </div>
+      <div class="receipt-footer">
+        <div>Thank you for your visit!</div>
+      </div>
+    </div>
+  `;
+  $('receiptContent').innerHTML = html;
+  $('receiptButtons').classList.remove('hidden');
+}
+
+if ($('printReceiptBtn')) {
+  $('printReceiptBtn').addEventListener('click', () => {
+    document.querySelectorAll('.receipt-preview').forEach((el) => {
+      el.classList.remove('hidden-print');
+    });
+    window.print();
+  });
+  $('closeReceiptBtn').addEventListener('click', () => switchTab('order'));
+}
 
 // ---------------------------------------------------------------------------
 // Reports
@@ -1021,10 +1092,11 @@ function renderOrders(orders) {
         <td>${escapeHtml(o.createdBy || '—')}</td>
         <td>${o.itemCount}</td>
         <td style="text-align:right;color:#86efac;font-weight:700">${fmt(o.total)}</td>
-        <td style="text-align:right">${
-          can('orders:void') && o.status !== 'voided'
-            ? `<button class="btn btn-secondary" style="font-size:0.75rem;padding:0.25rem 0.5rem" data-void="${escapeHtml(o.id)}" type="button">Void</button>`
-            : ''
+        <td style="text-align:right">
+          <button class="btn btn-primary" style="font-size:0.75rem;padding:0.25rem 0.5rem;margin-right:0.5rem" data-print-receipt="${escapeHtml(o.id)}" type="button">Print</button>
+          ${can('orders:void') && o.status !== 'voided'
+          ? `<button class="btn btn-secondary" style="font-size:0.75rem;padding:0.25rem 0.5rem" data-void="${escapeHtml(o.id)}" type="button">Void</button>`
+          : ''
         }</td>
       </tr>`
     )
@@ -1032,6 +1104,14 @@ function renderOrders(orders) {
 }
 
 $('ordersBody').addEventListener('click', async (e) => {
+  const printBtn = e.target.closest('[data-print-receipt]');
+  if (printBtn) {
+    const id = printBtn.dataset.printReceipt;
+    const order = state.orders.find(o => o.id === id);
+    if (order) renderReceipt(order);
+    return;
+  }
+
   const btn = e.target.closest('[data-void]');
   if (!btn) return;
   const id = btn.dataset.void;
@@ -1090,10 +1170,9 @@ async function loadStaff() {
             <div style="font-weight:600">${escapeHtml(u.name)}</div>
             <div style="font-size:0.75rem;color:#94a3b8;text-transform:capitalize">${escapeHtml(u.role)}${u.isActive ? '' : ' — removed'}</div>
           </div>
-          ${
-            u.isActive && String(u.id) !== String(state.user.id)
-              ? `<button class="btn btn-secondary" style="font-size:0.75rem;padding:0.25rem 0.5rem" data-staff-remove="${u.id}" type="button">Remove</button>`
-              : ''
+          ${u.isActive && String(u.id) !== String(state.user.id)
+            ? `<button class="btn btn-secondary" style="font-size:0.75rem;padding:0.25rem 0.5rem" data-staff-remove="${u.id}" type="button">Remove</button>`
+            : ''
           }
         </div>`
       )
@@ -1170,7 +1249,7 @@ async function loadKitchen() {
     const date = new Date().toISOString().slice(0, 10);
     const { orders } = await api(`/orders?date=${encodeURIComponent(date)}`);
     const pendingOrders = orders.filter(o => o.status !== 'voided' && o.fulfillmentStatus === 'pending');
-    
+
     // Chef View: Aggregate items across all pending orders
     const aggregatedItems = {};
     pendingOrders.forEach(o => {
@@ -1179,16 +1258,16 @@ async function loadKitchen() {
         aggregatedItems[i.name] += i.quantity;
       });
     });
-    
+
     const chefHtml = Object.entries(aggregatedItems).map(([name, qty]) => `
       <div style="display:flex; justify-content:space-between; padding: 0.75rem; border-bottom: 1px solid #475569; align-items:center;">
         <span style="font-weight:600; font-size:1.1rem;">${escapeHtml(name)}</span>
         <span style="font-weight:700; color:#fbbf24; font-size:1.4rem;">${qty}</span>
       </div>
     `).join('');
-    
+
     $('chefViewContent').innerHTML = chefHtml || '<div class="empty-state">No items to cook right now.</div>';
-    
+
     // Packer View: Individual orders
     const packerHtml = pendingOrders.map(o => `
       <div style="margin-bottom: 1rem; border: 1px solid #475569; border-radius: 0.5rem; padding: 1rem; background:#1e293b;">
@@ -1207,9 +1286,9 @@ async function loadKitchen() {
         <button class="btn btn-success" style="width:100%" data-fulfill-order="${escapeHtml(o.id)}" type="button">✔️ Mark Packed</button>
       </div>
     `).join('');
-    
+
     $('packerViewContent').innerHTML = packerHtml || '<div class="empty-state">No pending orders.</div>';
-    
+
   } catch (err) {
     toast('error', 'Could not load kitchen data', err.message);
   }
@@ -1250,6 +1329,6 @@ if ($('packerViewContent')) {
   // reaches the other tills without anyone reloading. Cheap, and it prevents the
   // confusing case where two tills quote different prices for the same dish.
   setInterval(() => {
-    if (state.user) refreshMenu().catch(() => {});
+    if (state.user) refreshMenu().catch(() => { });
   }, 120000);
 })();
