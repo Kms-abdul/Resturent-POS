@@ -1374,7 +1374,7 @@ async function loadKitchen() {
         }
         
         if (!aggregatedItems[baseName]) {
-          aggregatedItems[baseName] = { single: 0, full: 0, normal: 0 };
+          aggregatedItems[baseName] = { single: 0, full: 0, normal: 0, category: i.category || '' };
         }
         aggregatedItems[baseName][variant] += i.quantity;
       });
@@ -1391,7 +1391,10 @@ async function loadKitchen() {
       }
       return `
       <div style="display:flex; justify-content:space-between; padding: 0.5rem 0.75rem; border-bottom: 1px solid #475569; align-items:center;">
-        <span style="font-weight:700; font-size:1.25rem;">${escapeHtml(name)}</span>
+        <div style="font-weight:700; font-size:1.25rem;">
+          ${escapeHtml(name)}
+          ${counts.category ? `<span style="font-size:0.875rem; color:#94a3b8; font-weight:normal; margin-left:0.5rem;">(${escapeHtml(counts.category)})</span>` : ''}
+        </div>
         <div>${qtyHtml}</div>
       </div>
       `;
@@ -1408,8 +1411,11 @@ async function loadKitchen() {
         </div>
         <div style="margin-bottom:1rem;">
           ${o.items.map(i => `
-            <div style="display:flex; justify-content:space-between; padding: 0.25rem 0; font-size: 1.1rem;">
-              <span>• ${escapeHtml(i.name)}</span>
+            <div style="display:flex; justify-content:space-between; padding: 0.25rem 0; font-size: 1.1rem; align-items:center;">
+              <div>
+                <span>• ${escapeHtml(i.name)}</span>
+                ${i.category ? `<span style="font-size:0.875rem; color:#94a3b8; margin-left:0.5rem;">(${escapeHtml(i.category)})</span>` : ''}
+              </div>
               <span style="font-weight:bold;">${i.quantity}</span>
             </div>
           `).join('')}

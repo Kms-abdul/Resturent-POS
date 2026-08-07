@@ -1217,9 +1217,10 @@
                 </div>
 
                 <!-- KITCHEN KDS -->
-                <div id="kitchenTab" class="hidden">
+                <div id="kitchenTab" class="hidden"
+                    style="height: calc(100vh - 230px); display: flex; flex-direction: column;">
                     <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-shrink: 0;">
                         <h2>👨‍🍳 Kitchen Display System</h2>
                         <div style="display: flex; gap: 1rem; align-items: center;">
                             <label
@@ -1230,18 +1231,18 @@
                             <button class="btn btn-secondary" id="refreshKitchenBtn" type="button">🔄 Refresh</button>
                         </div>
                     </div>
-                    <div class="grid-2col">
-                        <div>
-                            <div class="card">
-                                <div class="card-header" style="background:#b91c1c;">🔥 Chef View: To Cook</div>
-                                <div id="chefViewContent" style="padding: 1rem;"></div>
-                            </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; flex: 1; min-height: 0;">
+                        <div class="card" style="display: flex; flex-direction: column; padding: 0; overflow: hidden;">
+                            <div class="card-header"
+                                style="background:#b91c1c; margin: 0; padding: 1rem; flex-shrink: 0;">🔥 Chef View: To
+                                Cook</div>
+                            <div id="chefViewContent" style="padding: 1rem; overflow-y: auto; flex: 1;"></div>
                         </div>
-                        <div>
-                            <div class="card">
-                                <div class="card-header" style="background:#2563eb;">📦 Packer View: To Pack</div>
-                                <div id="packerViewContent" style="padding: 1rem;"></div>
-                            </div>
+                        <div class="card" style="display: flex; flex-direction: column; padding: 0; overflow: hidden;">
+                            <div class="card-header"
+                                style="background:#2563eb; margin: 0; padding: 1rem; flex-shrink: 0;">📦 Packer View: To
+                                Pack</div>
+                            <div id="packerViewContent" style="padding: 1rem; overflow-y: auto; flex: 1;"></div>
                         </div>
                     </div>
                 </div>
