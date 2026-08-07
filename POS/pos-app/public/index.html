@@ -653,30 +653,30 @@
             margin: 2rem auto;
             border-radius: 0.25rem;
         }
-        
+
         .receipt-header {
             text-align: center;
             margin-bottom: 1rem;
             border-bottom: 2px solid black;
             padding-bottom: 0.5rem;
         }
-        
+
         .receipt-title {
             font-size: 1.25rem;
             font-weight: 700;
         }
-        
+
         .receipt-section {
             margin-bottom: 1rem;
             font-size: 0.875rem;
         }
-        
+
         .receipt-item {
             display: flex;
             justify-content: space-between;
             margin-bottom: 0.25rem;
         }
-        
+
         .receipt-total {
             border-top: 1px dashed black;
             padding-top: 0.5rem;
@@ -685,7 +685,7 @@
             display: flex;
             justify-content: space-between;
         }
-        
+
         .receipt-footer {
             text-align: center;
             font-size: 0.875rem;
@@ -992,7 +992,8 @@
                 padding: 0;
             }
 
-            .kot-preview, .receipt-preview {
+            .kot-preview,
+            .receipt-preview {
                 margin: 0;
                 box-shadow: none;
                 border: 2px solid black;
@@ -1134,8 +1135,10 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="button-group" style="margin-top: 1rem; display:flex; flex-direction:column; gap:0.5rem">
-                                <button class="btn btn-warning" id="printBillBtn" type="button" disabled>🖨️ Print Receipt</button>
+                            <div class="button-group"
+                                style="margin-top: 1rem; display:flex; flex-direction:column; gap:0.5rem">
+                                <button class="btn btn-warning" id="printBillBtn" type="button" disabled>🖨️ Print
+                                    Receipt</button>
                                 <button class="btn btn-success" id="billBtn" type="button" disabled>💰 Complete
                                     Billing</button>
                                 <button class="btn btn-secondary" id="clearCartBtn" type="button" disabled>Clear
@@ -1166,15 +1169,17 @@
                                     <label class="form-label">Pricing</label>
                                     <div style="display:flex; gap:1rem;">
                                         <div style="flex:1">
-                                            <input type="number" id="itemPrice" class="form-input" placeholder="Single Plate Price" min="0.01" step="0.01" required>
+                                            <input type="number" id="itemPrice" class="form-input"
+                                                placeholder="Single Plate Price" min="0.01" step="0.01" required>
                                         </div>
                                         <div style="flex:1">
-                                            <input type="number" id="itemPriceFull" class="form-input" placeholder="Full Plate Price (Optional)" min="0.01" step="0.01">
+                                            <input type="number" id="itemPriceFull" class="form-input"
+                                                placeholder="Full Plate Price (Optional)" min="0.01" step="0.01">
                                         </div>
                                     </div>
                                 </div>
                                 <div class="field-error" id="menuFormError"></div>
-                                <button class="btn btn-primary" style="width: 100%;" type="submit" id="addItemBtn">Add
+                                <button class="btn btn-primary" style="width: 100%s;" type="submit" id="addItemBtn">Add
                                     Item</button>
                             </form>
                         </div>
@@ -1213,10 +1218,12 @@
 
                 <!-- KITCHEN KDS -->
                 <div id="kitchenTab" class="hidden">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <h2>👨‍🍳 Kitchen Display System</h2>
                         <div style="display: flex; gap: 1rem; align-items: center;">
-                            <label style="display:flex; align-items:center; gap:0.5rem; background:#334155; padding:0.5rem 1rem; border-radius:0.5rem; cursor:pointer;">
+                            <label
+                                style="display:flex; align-items:center; gap:0.5rem; background:#334155; padding:0.5rem 1rem; border-radius:0.5rem; cursor:pointer;">
                                 <input type="checkbox" id="kitchenAutoPrint" style="width:1.2rem; height:1.2rem;">
                                 <span style="font-weight:600; font-size:0.9rem;">Auto-Print KOTs</span>
                             </label>
