@@ -101,6 +101,33 @@ async function reserveOrderNumber() {
 }
 
 /**
+ * If an order is cleared, attempt to roll back the counter.
+ * Only rolls back if the counter is exactly at the unreserved value,
+ * which prevents collisions if another till already advanced it.
+ */
+async function unreserveOrderNumber(numberStr) {
+  const num = parseInt(numberStr, 10);
+  if (isNaN(num)) return;
+
+  return store.mutate((s) => {
+    const now = new Date();
+    const current = peekTokenNumber(s, now) - 1; // peekTokenNumber returns next, so -1 is current
+    if (current === num) {
+      return {
+        events: [
+          {
+            type: 'setting.set',
+            payload: { key: tokenCounterKey(now), value: current - 1, updatedAt: now.toISOString() },
+          },
+        ],
+        result: { success: true },
+      };
+    }
+    return { events: [], result: { success: false } };
+  });
+}
+
+/**
  * `lines` may be passed explicitly. During creation the order has not been
  * committed to state yet, so looking its lines up from the store would return
  * an empty array and the till would render a bill with no items on it.
@@ -156,6 +183,8 @@ async function create(input, user) {
     const lines = [];
     let totalMinor = 0;
     let itemCount = 0;
+    
+    const now = new Date();
 
     for (const requested of data.items) {
       const item = s.get('menu_items', requested.menuItemId);
@@ -173,6 +202,7 @@ async function create(input, user) {
       lines.push({
         lineId: crypto.randomUUID(),
         orderId: null, // filled once the invoice number is allocated
+        createdAt: now.toISOString(),
         menuItemId: item.id,
         name: item.name,
         category: item.category,
@@ -184,8 +214,6 @@ async function create(input, user) {
         lineTotalMinor,
       });
     }
-
-    const now = new Date();
     const { id, counterKey, counterValue } = nextInvoiceNumber(s, now);
     for (const line of lines) line.orderId = id;
 
@@ -307,4 +335,4 @@ function listForDay(dateStr) {
     .map((o) => toApi(o));
 }
 
-module.exports = { create, voidOrder, get, listForDay, toApi, reserveOrderNumber, markFulfilled };
+module.exports = { create, voidOrder, get, listForDay, toApi, reserveOrderNumber, unreserveOrderNumber, markFulfilled };

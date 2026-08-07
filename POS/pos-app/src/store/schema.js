@@ -71,9 +71,12 @@ const SHEETS = {
       // it in memory means the guarantee survives a server restart too.
       { key: 'clientRef', header: 'Client Ref', type: 'text', width: 38 },
       { key: 'fulfillmentStatus', header: 'Fulfillment', type: 'text', width: 14 },
-      { key: 'createdAt', header: 'Created At', type: 'datetime', width: 20 },
-      { key: 'settledAt', header: 'Settled At', type: 'datetime', width: 20 },
-      { key: 'voidedAt', header: 'Voided At', type: 'datetime', width: 20 },
+      { key: 'createdDate', source: 'createdAt', header: 'Created Date', type: 'date', width: 14 },
+      { key: 'createdTime', source: 'createdAt', header: 'Created Time', type: 'time', width: 14 },
+      { key: 'settledDate', source: 'settledAt', header: 'Settled Date', type: 'date', width: 14 },
+      { key: 'settledTime', source: 'settledAt', header: 'Settled Time', type: 'time', width: 14 },
+      { key: 'voidedDate', source: 'voidedAt', header: 'Voided Date', type: 'date', width: 14 },
+      { key: 'voidedTime', source: 'voidedAt', header: 'Voided Time', type: 'time', width: 14 },
       { key: 'voidReason', header: 'Void Reason', type: 'text', width: 28 },
     ],
   },
@@ -84,6 +87,7 @@ const SHEETS = {
     columns: [
       { key: 'lineId', header: 'Line ID', type: 'text', width: 26 },
       { key: 'orderId', header: 'Order ID', type: 'text', width: 20 },
+      { key: 'createdAt', header: 'Date', type: 'datetime', width: 20 },
       { key: 'menuItemId', header: 'Menu Item ID', type: 'int', width: 14 },
       { key: 'name', header: 'Item', type: 'text', width: 30 },
       { key: 'category', header: 'Category', type: 'text', width: 18 },

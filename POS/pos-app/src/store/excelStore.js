@@ -362,7 +362,7 @@ class ExcelStore {
           const colNumber = indexByHeader.get(col.header);
           const raw = colNumber ? row.getCell(colNumber).value : null;
           const parsed = parseCell(raw, col.type);
-          obj[col.key] = parsed;
+          obj[col.source || col.key] = parsed;
           if (parsed !== null && parsed !== undefined && parsed !== '') hasAnyValue = true;
         }
 
@@ -503,7 +503,7 @@ class ExcelStore {
 
       for (const row of this.state[table].values()) {
         const out = {};
-        for (const col of def.columns) out[col.key] = serializeCell(row[col.key], col.type);
+        for (const col of def.columns) out[col.key] = serializeCell(row[col.source || col.key], col.type);
         sheet.addRow(out);
       }
 
@@ -512,7 +512,9 @@ class ExcelStore {
       def.columns.forEach((col, i) => {
         const column = sheet.getColumn(i + 1);
         if (col.type === 'money') column.numFmt = '#,##0.00';
-        if (col.type === 'datetime') column.numFmt = 'yyyy-mm-dd hh:mm:ss';
+        if (col.type === 'datetime') column.numFmt = 'dd-mm-yyyy hh:mm:ss AM/PM';
+        if (col.type === 'date') column.numFmt = 'dd-mm-yyyy';
+        if (col.type === 'time') column.numFmt = 'hh:mm:ss AM/PM';
       });
 
       if (sheet.rowCount > 1) {
@@ -533,7 +535,10 @@ class ExcelStore {
   async backup(reason = 'manual') {
     if (!fs.existsSync(config.workbookPath)) return null;
 
-    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const now = new Date();
+    // Offset by 5.5 hours to get IST in a simple ISO string slice
+    const ist = new Date(now.getTime() + 5.5 * 60 * 60 * 1000);
+    const stamp = ist.toISOString().slice(0, 19).replace('T', '_').replace(/:/g, '-');
     const dest = path.join(config.backupDir, `pos-data-${stamp}-${reason}.xlsx`);
     await fsp.copyFile(config.workbookPath, dest);
 
@@ -616,8 +621,15 @@ function parseCell(raw, type) {
       const s = String(v).trim().toLowerCase();
       return ['true', 'yes', 'y', '1', 'active'].includes(s);
     }
-    case 'datetime': {
-      if (v instanceof Date) return v.toISOString();
+    case 'datetime':
+    case 'date':
+    case 'time': {
+      if (v instanceof Date) {
+        // ExcelJS reads the raw cell value as UTC. Since we wrote it as IST (UTC+5:30), 
+        // we must subtract 5.5 hours to recover the true UTC timestamp for the state.
+        const realTime = v.getTime() - (5.5 * 60 * 60 * 1000);
+        return new Date(realTime).toISOString();
+      }
       const d = new Date(String(v));
       return Number.isNaN(d.getTime()) ? null : d.toISOString();
     }
@@ -635,7 +647,15 @@ function serializeCell(value, type) {
     case 'money':
       return money.toMajor(value);
     case 'datetime':
-      return value instanceof Date ? value : new Date(value);
+    case 'date':
+    case 'time': {
+      if (!value) return null;
+      const d = value instanceof Date ? value : new Date(value);
+      if (Number.isNaN(d.getTime())) return null;
+      // ExcelJS writes the Date's UTC value to the spreadsheet.
+      // To force Excel to display Indian Standard Time (+5:30), we shift the UTC time forward.
+      return new Date(d.getTime() + (5.5 * 60 * 60 * 1000));
+    }
     case 'bool':
       return Boolean(value);
     case 'int':

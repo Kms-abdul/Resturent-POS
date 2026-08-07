@@ -249,7 +249,14 @@ function loadKotHistory() {
   }
 }
 
-function clearCart() {
+async function clearCart(abandoned = false) {
+  if (abandoned && state.orderNumber && !state.orderNumberManual) {
+    api('/orders/number/unreserve', {
+      method: 'POST',
+      body: { number: state.orderNumber },
+    }).catch(() => {});
+  }
+  
   state.cart = [];
   state.orderNumber = '';
   state.orderNumberManual = false;
@@ -508,9 +515,9 @@ function renderBrowse() {
     itemGrid.classList.remove('hidden');
     back.classList.add('hidden');
     title.textContent = `🔍 ${items.length} result${items.length === 1 ? '' : 's'}`;
-    
+
     const groupedItems = Object.values(groupMenuVariants(items));
-    
+
     itemGrid.innerHTML = groupedItems.length
       ? groupedItems.map(groupTile).join('')
       : '<div class="empty-state">No items match that search.</div>';
@@ -547,9 +554,9 @@ function renderBrowse() {
   itemGrid.classList.remove('hidden');
   back.classList.remove('hidden');
   title.textContent = state.activeCategory;
-  
+
   const groupedItems = Object.values(groupMenuVariants(items));
-  
+
   itemGrid.innerHTML = groupedItems.length
     ? groupedItems.map(groupTile).join('')
     : '<div class="empty-state">Nothing left in this category.</div>';
@@ -567,7 +574,7 @@ function groupMenuVariants(itemsList) {
       baseName = baseName.replace(' (Full)', '');
       variant = 'full';
     }
-    
+
     if (!grouped[baseName]) {
       grouped[baseName] = { baseName, category: i.category, normal: null, single: null, full: null };
     }
@@ -907,7 +914,7 @@ $('clearCartBtn').addEventListener('click', async () => {
     confirmLabel: 'Clear',
     danger: true,
   });
-  if (ok) clearCart();
+  if (ok) clearCart(true);
 });
 
 // ---------------------------------------------------------------------------
@@ -936,10 +943,10 @@ $('printBillBtn').addEventListener('click', () => {
     paymentMode: 'Pending',
     createdAt: new Date().toISOString()
   };
-  
+
   state.kotPrinted = true;
   renderCart(); // Re-evaluate billBtn disabled state
-  
+
   renderReceipt(tempOrder);
   setTimeout(() => {
     document.querySelectorAll('.receipt-preview').forEach((el) => {
@@ -1045,7 +1052,7 @@ $('billBtn').addEventListener('click', async () => {
         `Order #${order.orderNumber} complete`,
         `${fmt(order.total)} — ${order.paymentMode} — ${order.id}`
       );
-      
+
       const newKOT = {
         id: order.id,
         orderNumber: order.orderNumber,
@@ -1053,7 +1060,7 @@ $('billBtn').addEventListener('click', async () => {
         timestamp: new Date(order.createdAt),
         cashier: order.createdBy || 'Cashier',
       };
-      
+
       if (!state.kotHistory.find(k => k.id === newKOT.id)) {
         state.kotHistory.unshift(newKOT);
         if (state.kotHistory.length > 50) state.kotHistory = state.kotHistory.slice(0, 50);
@@ -1372,7 +1379,7 @@ async function loadKitchen() {
           baseName = baseName.replace(' (Full)', '');
           variant = 'full';
         }
-        
+
         if (!aggregatedItems[baseName]) {
           aggregatedItems[baseName] = { single: 0, full: 0, normal: 0, category: i.category || '' };
         }
@@ -1468,7 +1475,7 @@ if ($('packerViewContent')) {
   setInterval(() => {
     if (state.user) refreshMenu().catch(() => { });
   }, 120000);
-  
+
   // Real-time events
   const evtSource = new EventSource('/api/events');
   evtSource.addEventListener('new_order', (e) => {
@@ -1502,6 +1509,6 @@ if ($('packerViewContent')) {
       if (e.target.checked) toast('success', 'Auto-Print Enabled', 'KOTs will automatically print on this device.');
     });
   }
-  
+
   loadKotHistory();
 })();

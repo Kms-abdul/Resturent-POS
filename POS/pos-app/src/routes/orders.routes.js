@@ -23,6 +23,14 @@ router.post('/number', requirePerm('orders:create'), async (req, res, next) => {
   }
 });
 
+router.post('/number/unreserve', requirePerm('orders:create'), async (req, res, next) => {
+  try {
+    res.json(await orderService.unreserveOrderNumber(req.body.number));
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.post('/', requirePerm('orders:create'), async (req, res, next) => {
   try {
     const { order, duplicate } = await orderService.create(
